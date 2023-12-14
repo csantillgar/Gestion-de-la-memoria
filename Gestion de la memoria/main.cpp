@@ -1,14 +1,19 @@
-#include <sys/mman.h>
+#include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/wait.h>
 
 #define SIZE 4096
 
 int main() {
-    char *shared_memory = mmap(NULL, SIZE, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+    HANDLE hMapFile;
+    LPCTSTR pBuf;
+    hMapFile = CreateFileMapping(
+            INVALID_HANDLE_VALUE,   // Handle del archivo mapeado
+            NULL,                   // Atributos de seguridad
+            PAGE_READWRITE,         // Permisos de lectura/escritura
+            0,                      // Tamaño máximo de la memoria (alto)
+            SIZE,                   // Tamaño máximo de la memoria (bajo)
+            L"MemoriaCompartida");  // Nombre del archivo mapeado
     if (shared_memory == MAP_FAILED) {
         perror("mmap");
         exit(EXIT_FAILURE);
