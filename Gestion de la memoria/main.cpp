@@ -1,42 +1,40 @@
 #include <windows.h>
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 #define SIZE 4096
 
 int main() {
     HANDLE hMapFile;
-    LPCTSTR pBuf;
+    LPCWSTR pBuf;
 
     // Crear un mapeo de archivo
-    hMapFile = CreateFileMapping(
-            INVALID_HANDLE_VALUE,   // Handle del archivo mapeado
+    hMapFile = CreateFileMappingW(
+            nullptr,                // Handle del archivo mapeado
             NULL,                   // Atributos de seguridad
             PAGE_READWRITE,         // Permisos de lectura/escritura
             0,                      // Tamaño máximo de la memoria (alto)
             SIZE,                   // Tamaño máximo de la memoria (bajo)
             L"MemoriaCompartida");  // Nombre del objeto de mapeo compartido
 
-    if (hMapFile == NULL) {
-        perror("CreateFileMapping");
+    if (hMapFile == nullptr) {
+        perror("CreateFileMappingW");
         return 1;
     }
 
     // Mapear la vista de archivo a la memoria del proceso actual
-    pBuf = (LPCTSTR)MapViewOfFile(
+    pBuf = reinterpret_cast<LPCWSTR>(MapViewOfFile(
             hMapFile,               // Handle del archivo mapeado
             FILE_MAP_ALL_ACCESS,    // Permisos de acceso
             0,
             0,
-            SIZE);
+            SIZE));
 
-    if (pBuf == NULL) {
+    if (pBuf == nullptr) {
         perror("MapViewOfFile");
         CloseHandle(hMapFile);
         return 1;
     }
-
-    // Crear un nuevo proceso
     STARTUPINFO si = {0};
     PROCESS_INFORMATION pi = {0};
     si.cb = sizeof(STARTUPINFO);
