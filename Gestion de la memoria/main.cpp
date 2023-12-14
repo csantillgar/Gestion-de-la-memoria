@@ -18,16 +18,30 @@ int main() {
         perror("CreateFileMapping");
         return 1;
     }
+    pBuf = (LPTSTR)MapViewOfFile(
+            hMapFile,               // Handle del archivo mapeado
+            FILE_MAP_ALL_ACCESS,    // Permisos de acceso
+            0,
+            0,
+            SIZE);
+    if (pBuf == NULL) {
+        perror("MapViewOfFile");
+        CloseHandle(hMapFile);
+        return 1;
 
+    }
     pid_t pid = fork();
 
     if (pid < 0) {
         perror("fork");
-        exit(EXIT_FAILURE);
+        return 1;
     } else if (pid == 0) {
-        printf("Child reads: %s\n", shared_memory);
+        printf("Child reads: %s\n",pBuf);
         munmap(shared_memory, SIZE);
+        UnmapViewOfFile(pBuf);
+        CloseHandle(hMapFile);
         exit(EXIT_SUCCESS);
+        return 0;
     } else {
         strcpy(shared_memory, "Hello, child process!");
         wait(NULL);
