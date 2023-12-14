@@ -8,20 +8,22 @@ int main() {
     HANDLE hMapFile;
     LPCTSTR pBuf;
 
+    // Crear un mapeo de archivo
     hMapFile = CreateFileMapping(
             INVALID_HANDLE_VALUE,   // Handle del archivo mapeado
             NULL,                   // Atributos de seguridad
             PAGE_READWRITE,         // Permisos de lectura/escritura
             0,                      // Tamaño máximo de la memoria (alto)
             SIZE,                   // Tamaño máximo de la memoria (bajo)
-            L"MemoriaCompartida");  // Nombre del archivo mapeado
+            L"MemoriaCompartida");  // Nombre del objeto de mapeo compartido
 
     if (hMapFile == NULL) {
         perror("CreateFileMapping");
         return 1;
     }
 
-    pBuf = (LPTSTR)MapViewOfFile(
+    // Mapear la vista de archivo a la memoria del proceso actual
+    pBuf = (LPCTSTR)MapViewOfFile(
             hMapFile,               // Handle del archivo mapeado
             FILE_MAP_ALL_ACCESS,    // Permisos de acceso
             0,
@@ -34,23 +36,39 @@ int main() {
         return 1;
     }
 
-    pid_t pid = fork();
+    // Crear un nuevo proceso
+    STARTUPINFO si = {0};
+    PROCESS_INFORMATION pi = {0};
+    si.cb = sizeof(STARTUPINFO);
 
-    if (pid < 0) {
-        perror("fork");
+    if (!CreateProcess(
+            NULL,                 // Nombre de la aplicación a ejecutar
+            "child_process.exe",  // Nombre del ejecutable del proceso hijo
+            NULL,
+            NULL,
+            FALSE,
+            0,
+            NULL,
+            NULL,
+            &si,
+            &pi)) {
+        perror("CreateProcess");
+        UnmapViewOfFile(pBuf);
+        CloseHandle(hMapFile);
         return 1;
-    } else if (pid == 0) {
-        printf("Child reads: %s\n", pBuf);
-        UnmapViewOfFile(pBuf);
-        CloseHandle(hMapFile);
-        return 0;
-    } else {
-        strcpy(pBuf, "Hello, child process!");
-        WaitForSingleObject(pid, INFINITE);
-        UnmapViewOfFile(pBuf);
-        CloseHandle(hMapFile);
-        return 0;
     }
+
+    // Esperar a que el proceso hijo termine
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    // Imprimir el contenido leído desde la memoria compartida
+    printf("Child reads: %s\n", pBuf);
+
+    // Liberar recursos
+    UnmapViewOfFile(pBuf);
+    CloseHandle(hMapFile);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
 
     return 0;
 }
