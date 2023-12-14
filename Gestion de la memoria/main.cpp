@@ -14,9 +14,9 @@ int main() {
             0,                      // Tamaño máximo de la memoria (alto)
             SIZE,                   // Tamaño máximo de la memoria (bajo)
             L"MemoriaCompartida");  // Nombre del archivo mapeado
-    if (shared_memory == MAP_FAILED) {
-        perror("mmap");
-        exit(EXIT_FAILURE);
+    if (hMapFile == NULL) {
+        perror("CreateFileMapping");
+        return 1;
     }
 
     pid_t pid = fork();
